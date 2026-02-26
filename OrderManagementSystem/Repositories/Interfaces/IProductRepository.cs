@@ -8,6 +8,5 @@ namespace OrderManagementSystem.Repositories.Interfaces
         Task<IEnumerable<Product>> GetAllProductsAsync();
         Task AddProductAsync(Product product);
         void UpdateProduct(Product product);
-        Task SaveChangesAsync();
     }
 }

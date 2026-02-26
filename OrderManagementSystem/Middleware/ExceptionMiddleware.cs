@@ -5,10 +5,12 @@ namespace OrderManagementSystem.Middleware
 {
     public class ExceptionMiddleware
     {
+        private readonly ILogger<ExceptionMiddleware> _logger;
         private readonly RequestDelegate _next;
 
-        public ExceptionMiddleware(RequestDelegate next)
+        public ExceptionMiddleware(ILogger<ExceptionMiddleware> logger, RequestDelegate next)
         {
+            _logger = logger;
             _next = next;
         }
 
@@ -20,6 +22,7 @@ namespace OrderManagementSystem.Middleware
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "An unhandled exception occurred.");
                 await HandleExceptionAsync(httpContext, ex);
             }
         }
@@ -37,9 +40,13 @@ namespace OrderManagementSystem.Middleware
 
             context.Response.StatusCode = (int)statusCode;
 
+            var message = statusCode == HttpStatusCode.InternalServerError
+                ? "An unexpected error occurred. Please try again later."
+                : ex.Message;
+
             var response = new
             {
-                message = ex.Message,
+                message,
                 status = context.Response.StatusCode
             };
 

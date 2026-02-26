@@ -28,7 +28,6 @@ namespace OrderManagementSystem.Services
             order.Invoice = invoice;
 
             _orderRepo.UpdateOrder(order);
-            await _orderRepo.SaveChangesAsync();
 
             return invoice;
         }

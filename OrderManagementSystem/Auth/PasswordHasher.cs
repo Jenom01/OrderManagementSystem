@@ -12,7 +12,7 @@ namespace OrderManagementSystem.Auth
             var hash = Rfc2898DeriveBytes.Pbkdf2(
                 password,
                 salt,
-                10000,
+                100_000,
                 HashAlgorithmName.SHA256,
                 32);
 
@@ -32,7 +32,7 @@ namespace OrderManagementSystem.Auth
             var inputHash = Rfc2898DeriveBytes.Pbkdf2(
                 password,
                 salt,
-                10000,
+                100_000,
                 HashAlgorithmName.SHA256,
                 32);
 

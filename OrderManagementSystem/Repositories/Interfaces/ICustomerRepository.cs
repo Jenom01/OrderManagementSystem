@@ -7,6 +7,5 @@ namespace OrderManagementSystem.Repositories.Interfaces
         Task<Customer?> GetCustomerByIdAsync(int id);
         Task<IEnumerable<Customer>> GetAllCustomersAsync();
         Task AddCustomerAsync(Customer customer);
-        Task SaveChangesAsync();
     }
 }

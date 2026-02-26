@@ -14,6 +14,8 @@ namespace OrderManagementSystem.Tests.Services
 {
     public class OrderServiceTests
     {
+        private readonly OrderManagementDbContext _context;
+
         private readonly Mock<IOrderRepository> _orderRepo = new();
         private readonly Mock<ICustomerRepository> _customerRepo = new();
         private readonly Mock<IProductRepository> _productRepo = new();
@@ -22,7 +24,6 @@ namespace OrderManagementSystem.Tests.Services
         private readonly Mock<IPaymentService> _payment = new();
         private readonly Mock<IInvoiceService> _invoice = new();
 
-        private readonly OrderManagementDbContext _context;
         private readonly OrderService _service;
 
         public OrderServiceTests()
@@ -34,14 +35,14 @@ namespace OrderManagementSystem.Tests.Services
             _context = new OrderManagementDbContext(options);
 
             _service = new OrderService(
+                _context,
                 _orderRepo.Object,
                 _customerRepo.Object,
                 _productRepo.Object,
                 _inventory.Object,
                 _discount.Object,
                 _payment.Object,
-                _invoice.Object,
-                _context
+                _invoice.Object
             );
         }
 

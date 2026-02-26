@@ -1,10 +1,11 @@
-﻿using OrderManagementSystem.Services.Interfaces;
+﻿using OrderManagementSystem.Models;
+using OrderManagementSystem.Services.Interfaces;
 
 namespace OrderManagementSystem.Services
 {
     public class EmailService : IEmailService
     {
-        public async Task SendOrderStatusEmailAsync(string email, string status)
+        public async Task SendOrderStatusEmailAsync(string email, OrderStatus status)
         {
             await Task.Delay(200); // Simulate email sending delay
 

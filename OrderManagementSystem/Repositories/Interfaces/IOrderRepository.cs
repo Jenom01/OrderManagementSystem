@@ -8,6 +8,5 @@ namespace OrderManagementSystem.Repositories.Interfaces
         Task<IEnumerable<Order>> GetAllOrdersAsync();
         Task AddOrderAsync(Order order);
         void UpdateOrder(Order order);
-        Task SaveChangesAsync();
     }
 }

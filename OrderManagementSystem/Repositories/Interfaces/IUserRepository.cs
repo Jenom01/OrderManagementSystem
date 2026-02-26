@@ -6,6 +6,5 @@ namespace OrderManagementSystem.Repositories.Interfaces
     {
         Task<User?> GetUserByUsernameAsync(string username);
         Task AddUserAsync(User user);
-        Task SaveChangesAsync();
     }
 }

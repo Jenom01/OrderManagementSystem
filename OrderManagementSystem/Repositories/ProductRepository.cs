@@ -21,7 +21,7 @@ namespace OrderManagementSystem.Repositories
 
         public async Task<IEnumerable<Product>> GetAllProductsAsync()
         {
-            return await _context.Products.ToListAsync();
+            return await _context.Products.AsNoTracking().ToListAsync();
         }
 
         public async Task AddProductAsync(Product product)
@@ -32,11 +32,6 @@ namespace OrderManagementSystem.Repositories
         public void UpdateProduct(Product product)
         {
             _context.Products.Update(product);
-        }
-
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
         }
     }
 }

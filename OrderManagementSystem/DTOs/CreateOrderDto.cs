@@ -4,9 +4,6 @@ namespace OrderManagementSystem.DTOs
 {
     public class CreateOrderDto
     {
-        [Required]
-        public int CustomerId { get; set; }
-
         public string PaymentMethod { get; set; } = string.Empty;
 
         [MinLength(1)]

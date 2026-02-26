@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OrderManagementSystem.Auth;
+using OrderManagementSystem.Data;
 using OrderManagementSystem.DTOs;
 using OrderManagementSystem.Models;
 using OrderManagementSystem.Repositories.Interfaces;
@@ -10,18 +11,25 @@ namespace OrderManagementSystem.Controllers
     [Route("api/users")]
     public class UserController : ControllerBase
     {
-        private readonly IUserRepository _userRepo;
+        private readonly OrderManagementDbContext _context;
         private readonly JwtTokenGenerator _tokenGenerator;
+        private readonly IUserRepository _userRepo;
 
-        public UserController(IUserRepository userRepo, JwtTokenGenerator TokenGenerator)
+        public UserController(OrderManagementDbContext context, JwtTokenGenerator TokenGenerator, IUserRepository userRepo)
         {
-            _userRepo = userRepo;
+            _context = context;
             _tokenGenerator = TokenGenerator;
+            _userRepo = userRepo;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
+            var existingUser = await _userRepo.GetUserByUsernameAsync(dto.Username);
+
+            if (existingUser != null)
+                return BadRequest("Username already exists.");
+
             var user = new User
             {
                 Username = dto.Username,
@@ -30,9 +38,9 @@ namespace OrderManagementSystem.Controllers
             };
 
             await _userRepo.AddUserAsync(user);
-            await _userRepo.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-            return Ok("User registered successfully.");
+            return Ok(new { Message = "User registered successfully." });
         }
 
         [HttpPost("login")]
@@ -41,9 +49,7 @@ namespace OrderManagementSystem.Controllers
             var user = await _userRepo.GetUserByUsernameAsync(dto.Username);
 
             if (user == null || !PasswordHasher.VerifyPassword(dto.Password, user.PasswordHash!))
-            {
                 return Unauthorized("Invalid username or password.");
-            }
 
             var token = _tokenGenerator.GenerateToken(user);
 

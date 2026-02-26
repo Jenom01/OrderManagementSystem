@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OrderManagementSystem.Data;
 using OrderManagementSystem.DTOs;
+using OrderManagementSystem.DTOs.Responses;
 using OrderManagementSystem.Models;
 using OrderManagementSystem.Repositories.Interfaces;
 
@@ -10,10 +12,12 @@ namespace OrderManagementSystem.Controllers
     [Route("api/products")]
     public class ProductController : ControllerBase
     {
+        private readonly OrderManagementDbContext _context;
         private readonly IProductRepository _productRepo;
 
-        public ProductController(IProductRepository productRepo)
+        public ProductController(OrderManagementDbContext context, IProductRepository productRepo)
         {
+            _context = context;
             _productRepo = productRepo;
         }
         
@@ -21,7 +25,16 @@ namespace OrderManagementSystem.Controllers
         public async Task<IActionResult> GetAll()
         {
             var products = await _productRepo.GetAllProductsAsync();
-            return Ok(products);
+
+            var response = products.Select(p => new ProductResponseDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                Stock = p.Stock
+            }).ToList();
+
+            return Ok(response);
         }
 
         [HttpGet("{id}")]
@@ -32,7 +45,15 @@ namespace OrderManagementSystem.Controllers
             if (product == null)
                 return NotFound();
 
-            return Ok(product);
+            var response = new ProductResponseDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Price = product.Price,
+                Stock = product.Stock
+            };
+
+            return Ok(response);
         }
 
         [Authorize(Roles = "Admin")]
@@ -47,28 +68,44 @@ namespace OrderManagementSystem.Controllers
             };
 
             await _productRepo.AddProductAsync(product);
-            await _productRepo.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-            return Ok(product);
+            var response = new ProductResponseDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Price = product.Price,
+                Stock = product.Stock
+            };
+
+            return Ok(response);
         }
 
         [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Product updatedProduct)
+        public async Task<IActionResult> Update(int id, CreateProductDto dto)
         {
-            var existingProduct = await _productRepo.GetProductByIdAsync(id);
-            
-            if (existingProduct == null)
+            var product = await _productRepo.GetProductByIdAsync(id);
+
+            if (product == null)
                 return NotFound();
 
-            existingProduct.Name = updatedProduct.Name;
-            existingProduct.Price = updatedProduct.Price;
-            existingProduct.Stock = updatedProduct.Stock;
+            product.Name = dto.Name;
+            product.Price = dto.Price;
+            product.Stock = dto.Stock;
 
-            _productRepo.UpdateProduct(existingProduct);
-            await _productRepo.SaveChangesAsync();
+            _productRepo.UpdateProduct(product);
+            await _context.SaveChangesAsync();
 
-            return Ok(existingProduct);
+            var response = new ProductResponseDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Price = product.Price,
+                Stock = product.Stock
+            };
+
+            return Ok(response);
         }
     }
 }

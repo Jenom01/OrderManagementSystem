@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrderManagementSystem.DTOs;
+using OrderManagementSystem.DTOs.Responses;
 using OrderManagementSystem.Models;
 using OrderManagementSystem.Repositories.Interfaces;
 using OrderManagementSystem.Services.Interfaces;
@@ -28,21 +29,46 @@ namespace OrderManagementSystem.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateOrderDto dto)
         {
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out int customerId))
+                return Unauthorized();
+
             var order = new Order
             {
-                CustomerId = dto.CustomerId,
+                CustomerId = customerId,
                 PaymentMethod = dto.PaymentMethod,
                 OrderItems = dto.Items.Select(i => new OrderItem
                 {
                     ProductId = i.ProductId,
                     Quantity = i.Quantity,
-                    UnitPrice = i.UnitPrice,
                 }).ToList()
             };
 
             var createdOrder = await _orderService.CreateOrderAsync(order);
 
-            return Ok(createdOrder);
+            var response = new OrderResponseDto
+            {
+                Id = createdOrder.Id,
+                OrderDate = createdOrder.OrderDate,
+                TotalAmount = createdOrder.TotalAmount,
+                Status = createdOrder.Status,
+                Customer = new CustomerResponseDto
+                {
+                    Id = createdOrder.Customer!.Id,
+                    Name = createdOrder.Customer.Name,
+                    Email = createdOrder.Customer.Email
+                },
+                OrderItems = createdOrder.OrderItems!.Select(oi => new OrderItemResponseDto
+                {
+                    ProductId = oi.ProductId,
+                    ProductName = oi.Product!.Name,
+                    Quantity = oi.Quantity,
+                    UnitPrice = oi.UnitPrice,
+                }).ToList()
+            };
+
+            return Ok(response);
         }
 
         [Authorize]
@@ -54,7 +80,28 @@ namespace OrderManagementSystem.Controllers
             if (order == null)
                 return NotFound();
 
-            return Ok(order);
+            var response = new OrderResponseDto
+            {
+                Id = order.Id,
+                OrderDate = order.OrderDate,
+                TotalAmount = order.TotalAmount,
+                Status = order.Status,
+                Customer = new CustomerResponseDto
+                {
+                    Id = order.Customer!.Id,
+                    Name = order.Customer.Name,
+                    Email = order.Customer.Email
+                },
+                OrderItems = order.OrderItems!.Select(oi => new OrderItemResponseDto
+                {
+                    ProductId = oi.ProductId,
+                    ProductName = oi.Product!.Name,
+                    Quantity = oi.Quantity,
+                    UnitPrice = oi.UnitPrice,
+                }).ToList()
+            };
+
+            return Ok(response);
         }
 
         [Authorize(Roles = "Admin")]
@@ -62,12 +109,34 @@ namespace OrderManagementSystem.Controllers
         public async Task<IActionResult> GetAll()
         {
             var orders = await _orderRepo.GetAllOrdersAsync();
-            return Ok(orders);
+
+            var response = orders.Select(order => new OrderResponseDto
+            {
+                Id = order.Id,
+                OrderDate = order.OrderDate,
+                TotalAmount = order.TotalAmount,
+                Status = order.Status,
+                Customer = new CustomerResponseDto
+                {
+                    Id = order.Customer!.Id,
+                    Name = order.Customer.Name,
+                    Email = order.Customer.Email
+                },
+                OrderItems = order.OrderItems!.Select(oi => new OrderItemResponseDto
+                {
+                    ProductId = oi.ProductId,
+                    ProductName = oi.Product!.Name,
+                    Quantity = oi.Quantity,
+                    UnitPrice = oi.UnitPrice,
+                }).ToList()
+            }).ToList();
+
+            return Ok(response);
         }
 
         [Authorize(Roles = "Admin")]
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(int id, string status)
+        public async Task<IActionResult> UpdateStatus(int id, OrderStatus status)
         {
             var order = await _orderRepo.GetOrderByIdAsync(id);
 
@@ -77,7 +146,6 @@ namespace OrderManagementSystem.Controllers
             order.Status = status;
 
             _orderRepo.UpdateOrder(order);
-            await _orderRepo.SaveChangesAsync();
 
             var customer = await _customerRepo.GetCustomerByIdAsync(order.CustomerId);
 
@@ -86,7 +154,28 @@ namespace OrderManagementSystem.Controllers
                 await _emailService.SendOrderStatusEmailAsync(customer.Email!, status);
             }
 
-            return Ok(order);
+            var response = new OrderResponseDto
+            {
+                Id = order.Id,
+                OrderDate = order.OrderDate,
+                TotalAmount = order.TotalAmount,
+                Status = order.Status,
+                Customer = new CustomerResponseDto
+                {
+                    Id = customer!.Id,
+                    Name = customer.Name,
+                    Email = customer.Email
+                },
+                OrderItems = order.OrderItems!.Select(oi => new OrderItemResponseDto
+                {
+                    ProductId = oi.ProductId,
+                    ProductName = oi.Product!.Name,
+                    Quantity = oi.Quantity,
+                    UnitPrice = oi.UnitPrice,
+                }).ToList()
+            };
+
+            return Ok(response);
         }
     }
 }

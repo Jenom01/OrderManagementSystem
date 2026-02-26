@@ -1,4 +1,6 @@
-﻿using Moq;
+﻿using Microsoft.EntityFrameworkCore;
+using Moq;
+using OrderManagementSystem.Data;
 using OrderManagementSystem.Models;
 using OrderManagementSystem.Repositories.Interfaces;
 using OrderManagementSystem.Services;
@@ -10,13 +12,21 @@ namespace OrderManagementSystem.Tests.Services
 {
     public class InventoryServiceTests
     {
+        private readonly OrderManagementDbContext _context;
         private readonly Mock<IProductRepository> _productRepoMock;
         private readonly InventoryService _service;
 
         public InventoryServiceTests()
         {
+            var options = new DbContextOptionsBuilder<OrderManagementDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new OrderManagementDbContext(options);
+
             _productRepoMock = new Mock<IProductRepository>();
-            _service = new InventoryService(_productRepoMock.Object);
+
+            _service = new InventoryService(_context, _productRepoMock.Object);
         }
 
         [Fact]

@@ -3,6 +3,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OrderManagementSystem.Models
 {
+    public enum OrderStatus
+    {
+        Pending,
+        Processing,
+        Shipped,
+        Delivered,
+        Cancelled
+    }
+
     public class Order
     {
         [Key]
@@ -19,11 +28,11 @@ namespace OrderManagementSystem.Models
         public string PaymentMethod { get; set; } = string.Empty;
 
         [Required]
-        public string Status { get; set; } = "Pending";
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
         public Customer? Customer { get; set; }
 
-        public ICollection<OrderItem>? OrderItems { get; set; }
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
         public Invoice? Invoice { get; set; }
     }

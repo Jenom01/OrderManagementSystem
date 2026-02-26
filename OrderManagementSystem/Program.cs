@@ -69,7 +69,8 @@ namespace OrderManagementSystem
                         ValidIssuer = issuer,
                         ValidAudience = audience,
 
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!)),
+                        ClockSkew = TimeSpan.Zero
                     };
                 });
 

@@ -23,17 +23,12 @@ namespace OrderManagementSystem.Repositories
 
         public async Task<IEnumerable<Customer>> GetAllCustomersAsync()
         {
-            return await _context.Customers.ToListAsync();
+            return await _context.Customers.AsNoTracking().ToListAsync();
         }
 
         public async Task AddCustomerAsync(Customer customer)
         {
             await _context.Customers.AddAsync(customer);
-        }
-
-        public async Task SaveChangesAsync ()
-        {
-            await _context.SaveChangesAsync();
         }
     }
 }

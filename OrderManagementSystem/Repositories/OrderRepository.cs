@@ -17,7 +17,7 @@ namespace OrderManagementSystem.Repositories
         public async Task<Order?> GetOrderByIdAsync(int id)
         {
             return await _context.Orders
-                .Include(o => o.OrderItems!)
+                .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Product)
                 .Include(o => o.Invoice)
                 .FirstOrDefaultAsync(o => o.Id == id);
@@ -27,6 +27,7 @@ namespace OrderManagementSystem.Repositories
         {
             return await _context.Orders
                 .Include(o => o.Customer)
+                .AsNoTracking()
                 .ToListAsync();
         }
 
@@ -38,11 +39,6 @@ namespace OrderManagementSystem.Repositories
         public void UpdateOrder(Order order)
         {
             _context.Orders.Update(order);
-        }
-
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
         }
     }
 }

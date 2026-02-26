@@ -9,26 +9,28 @@ namespace OrderManagementSystem.Services
 {
     public class OrderService : IOrderService
     {
+        private readonly OrderManagementDbContext _context;
+
         private readonly IOrderRepository _orderRepo;
         private readonly ICustomerRepository _customerRepo;
         private readonly IProductRepository _productRepo;
+
         private readonly IInventoryService _inventoryService;
         private readonly IDiscountService _discountService;
         private readonly IPaymentService _paymentService;
         private readonly IInvoiceService _invoiceService;
 
-        private readonly OrderManagementDbContext _context;
-
         public OrderService(
+            OrderManagementDbContext context,
             IOrderRepository orderRepo,
             ICustomerRepository customerRepo,
             IProductRepository productRepo,
             IInventoryService inventoryService,
             IDiscountService discountService,
             IPaymentService paymentService,
-            IInvoiceService invoiceService,
-            OrderManagementDbContext context)
+            IInvoiceService invoiceService)
         {
+            _context = context;
             _orderRepo = orderRepo;
             _customerRepo = customerRepo;
             _productRepo = productRepo;
@@ -36,83 +38,78 @@ namespace OrderManagementSystem.Services
             _discountService = discountService;
             _paymentService = paymentService;
             _invoiceService = invoiceService;
-            _context = context;
         }
 
         public async Task<Order> CreateOrderAsync(Order order)
         {
             if (order == null)
-                throw new Exception("Order cannot be null.");
+                throw new ArgumentNullException(nameof(order), "Order cannot be null.");
 
             if (order.OrderItems == null || !order.OrderItems.Any())
-                throw new Exception("Order must have at least one item.");
+                throw new InvalidOperationException("Order must have at least one item.");
 
             if (order.CustomerId <= 0)
-                throw new Exception("Invalid customer.");
+                throw new InvalidOperationException("Invalid customer.");
 
             var customer = await _customerRepo.GetCustomerByIdAsync(order.CustomerId);
 
             if (customer == null)
-                throw new Exception("Customer not found.");
+                throw new InvalidOperationException("Customer not found.");
+
+            decimal totalAmount = 0m;
 
             foreach (var item in order.OrderItems)
             {
                 var product = await _productRepo.GetProductByIdAsync(item.ProductId);
-                
+
                 if (product == null)
-                    throw new Exception($"Product with ID {item.ProductId} not found.");
-                
+                    throw new InvalidOperationException($"Product with ID {item.ProductId} not found.");
+
                 if (item.Quantity <= 0)
-                    throw new Exception("Invalid quantity for product " + product.Name);
+                    throw new InvalidOperationException($"Invalid quantity for product {product.Name}.");
 
                 if (product.Stock < item.Quantity)
-                    throw new Exception($"Insufficient stock for product {product.Name}. Available: {product.Stock}, Requested: {item.Quantity}");
+                    throw new InvalidOperationException(
+                        $"Insufficient stock for product {product.Name}. " +
+                        $"Available: {product.Stock}, Requested: {item.Quantity}");
+
+                item.UnitPrice = product.Price;
+
+                totalAmount += item.UnitPrice * item.Quantity;
             }
 
-            await _inventoryService.ValidateStockAsync(order.OrderItems!.ToList());
-
-            decimal totalAmount = 0;
-
-            //foreach (var item in order.OrderItems!)
-            //{
-            //    var product = await _productRepo.GetProductByIdAsync(item.ProductId);
-
-            //    if (product == null)
-            //        throw new Exception($"Product with ID {item.ProductId} not found.");
-
-            //    item.UnitPrice = product.Price;
-
-            //    totalAmount += item.Quantity * product.Price;
-            //}
+            await _inventoryService.ValidateStockAsync(order.OrderItems.ToList());
 
             var discount = _discountService.ApplyDiscount(totalAmount);
             totalAmount -= discount;
 
-            if (totalAmount < 0)
-                totalAmount = 0;
+            if (totalAmount <= 0)
+                throw new InvalidOperationException("Total amount must be greater than zero after applying discounts.");
 
             order.TotalAmount = totalAmount;
 
-            var paymentResult = await _paymentService.ProcessPaymentAsync(order.PaymentMethod!, totalAmount);
+            var paymentSuccessful = await _paymentService
+                .ProcessPaymentAsync(order.PaymentMethod, totalAmount);
 
-            if (!paymentResult)
+            if (!paymentSuccessful)
             {
-                throw new Exception("Payment failed.");
+                throw new InvalidOperationException("Payment failed.");
             }
 
             IDbContextTransaction? transaction = null;
-                       
+
             try
             {
                 if (_context.Database.IsRelational())
                     transaction = await _context.Database.BeginTransactionAsync();
 
                 await _orderRepo.AddOrderAsync(order);
-                await _orderRepo.SaveChangesAsync();
 
-                await _inventoryService.UpdateStockAsync(order.OrderItems!.ToList());
+                await _inventoryService.UpdateStockAsync(order.OrderItems.ToList());
 
                 await _invoiceService.GenerateInvoiceAsync(order);
+
+                await _context.SaveChangesAsync();
 
                 if (transaction != null)
                     await transaction.CommitAsync();
